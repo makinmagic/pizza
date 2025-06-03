@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pizza Leader Helper</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fffbe6;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .player {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px dashed #ccc;
+      border-radius: 8px;
+      background: #fffdfa;
+      text-align: center;
+    }
+    .input-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .input-group label {
+      min-width: 90px;
+      text-align: right;
+    }
+    .input-group input {
+      width: 160px;
+      font-size: 16px;
+      padding: 4px;
+    }
+    .ingredient-buttons button {
+      margin: 2px;
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+    .results {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍕 Pizza Leader Helper 🍕</h1>
+
+  <div id="players"></div>
+
+  <div class="button-container">
+    <button onclick="evaluatePizza()">Evaluate Round</button>
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    const VALID_INGREDIENTS = [
+      'SD', 'SS', 'SC', 'ST',
+      'MD', 'MS', 'MC', 'MT',
+      'LD', 'LS', 'LC', 'LT'
+    ];
+
+    const playerCount = 4;
+    const playersDiv = document.getElementById("players");
+
+    for (let i = 1; i <= playerCount; i++) {
+      const player = document.createElement("div");
+      player.className = "player";
+      player.innerHTML = `
+        <div class="input-group">
+          <label for="n${i}">Sim ${i} Name:</label>
+          <input id="n${i}" type="text" />
+        </div>
+        <div class="ingredient-buttons" id="buttons${i}"></div>
+        <input type="hidden" id="p${i}" />
+      `;
+      playersDiv.appendChild(player);
+
+      const btnContainer = document.getElementById(`buttons${i}`);
+      VALID_INGREDIENTS.forEach((ing) => {
+        const btn = document.createElement("button");
+        btn.textContent = ing;
+        btn.onclick = () => toggleIngredient(i, ing);
+        btnContainer.appendChild(btn);
+      });
+    }
+
+    function toggleIngredient(index, ing) {
+      const hidden = document.getElementById(`p${index}`);
+      let ingredients = hidden.value.trim().split(/\s+/).filter(Boolean);
+
+      if (ingredients.includes(ing)) {
+        ingredients = ingredients.filter((i) => i !== ing);
+      } else if (ingredients.length < 3) {
+        ingredients.push(ing);
+      }
+
+      hidden.value = ingredients.join(" ");
+      highlightButtons(index, ingredients);
+    }
+
+    function highlightButtons(index, selected) {
+      const btns = document.querySelectorAll(`#buttons${index} button`);
+      btns.forEach((btn) => {
+        btn.style.backgroundColor = selected.includes(btn.textContent) ? "#cce5ff" : "";
+      });
+    }
+
+    function parseIngredients(text) {
+      return text
+        .trim()
+        .split(/\s+/)
+        .map((i) => i.trim().toUpperCase())
+        .filter((i) => i);
+    }
+
+    function findPizzaCombo(players) {
+      const sizes = ['L', 'M', 'S'];
+      const coreTypes = ['D', 'S', 'C'];
+
+      for (let size of sizes) {
+        let needed = coreTypes.map((type) => size + type);
+        let found = [];
+        let used = [];
+        let usedPlayers = new Set();
+
+        for (let type of needed) {
+          let matched = false;
+          for (let [player, ingredients] of Object.entries(players)) {
+            if (usedPlayers.has(player)) continue;
+            if (ingredients.includes(type)) {
+              found.push(type);
+              used.push([player, type]);
+              usedPlayers.add(player);
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) break;
+        }
+
+        if (found.length === 3) {
+          for (let [player, ingredients] of Object.entries(players)) {
+            if (usedPlayers.has(player)) continue;
+            if (ingredients.includes(size + 'T')) {
+              used.push([player, size + 'T']);
+              usedPlayers.add(player);
+              const uniquePlayers = new Set(used.map(([p]) => p));
+              if (uniquePlayers.size === used.length) {
+                return { used, success: true, size, isSupreme: true };
+              }
+            }
+          }
+        }
+      }
+
+      for (let size of sizes) {
+        let needed = coreTypes.map((type) => size + type);
+        let found = [];
+        let used = [];
+        let usedPlayers = new Set();
+
+        for (let type of needed) {
+          let matched = false;
+          for (let [player, ingredients] of Object.entries(players)) {
+            if (usedPlayers.has(player)) continue;
+            if (ingredients.includes(type)) {
+              found.push(type);
+              used.push([player, type]);
+              usedPlayers.add(player);
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) break;
+        }
+
+        if (found.length === 3) {
+          return { used, success: true, size, isSupreme: false };
+        }
+      }
+
+      return { used: [], success: false };
+    }
+
+    function burnSuggestions(players, alreadyUsed) {
+      let burns = [];
+      for (let [player, ingredients] of Object.entries(players)) {
+        if (alreadyUsed.has(player)) continue;
+        if (ingredients.length > 0) {
+          burns.push([player, ingredients[0]]);
+        }
+      }
+      return burns;
+    }
+
+    function evaluatePizza() {
+      const players = {};
+      const inputMap = {};
+      const errors = [];
+      const names = [];
+
+      for (let i = 1; i <= playerCount; i++) {
+        const nameField = document.getElementById(`n${i}`);
+        const hiddenField = document.getElementById(`p${i}`);
+        const name = nameField.value.trim();
+        const ingredients = parseIngredients(hiddenField.value);
+
+        if (!name) {
+          errors.push(`Please enter a name for Sim ${i}.`);
+        }
+        for (let ing of ingredients) {
+          if (!VALID_INGREDIENTS.includes(ing)) {
+            errors.push(`Invalid ingredient found for Sim ${i}: \"${ing}\" is not allowed.`);
+          }
+        }
+        if (ingredients.length > 3) {
+          errors.push(`Sim ${i} has more than 3 ingredients.`);
+        }
+
+        const simName = name || `Player ${i}`;
+        players[simName] = ingredients;
+        inputMap[simName] = `p${i}`;
+        names.push(simName);
+      }
+
+      const output = document.getElementById('results');
+      if (errors.length > 0) {
+        output.innerHTML = `<strong>Input Errors:</strong><br>${errors.join('<br>')}`;
+        return;
+      }
+
+      const result = findPizzaCombo(players);
+      let messages = [];
+      let usedSet = new Set();
+      let playerAction = {};
+
+      if (result.success) {
+        const emoji = result.isSupreme ? '⭐' : '🍕';
+        messages.push(`<strong>Successful Pizza! (Size ${result.size}) ${emoji}:</strong>`);
+
+        for (let [player, ing] of result.used) {
+          playerAction[player] = { action: 'USE', ingredient: ing };
+          usedSet.add(player);
+        }
+
+        const burns = burnSuggestions(players, usedSet);
+        for (let [player, ing] of burns) {
+          if (!playerAction[player]) {
+            playerAction[player] = { action: 'BURN', ingredient: ing };
+            usedSet.add(player);
+          }
+        }
+
+      } else {
+        messages.push("<strong>No valid pizza. Let's BURN some stuff 🔥:</strong>");
+        const burns = burnSuggestions(players, new Set());
+        for (let [player, ing] of burns) {
+          playerAction[player] = { action: 'BURN', ingredient: ing };
+        }
+      }
+
+      for (let [player, { action, ingredient }] of Object.entries(playerAction)) {
+        const field = document.getElementById(inputMap[player]);
+        const current = parseIngredients(field.value);
+        let removed = false;
+        const updated = current.filter((i) => {
+          if (!removed && i === ingredient) {
+            removed = true;
+            return false;
+          }
+          return true;
+        });
+        field.value = updated.join(' ');
+        const index = inputMap[player].replace('p', '');
+        highlightButtons(index, updated);
+        messages.push(`${player}: ${action} ${ingredient}`);
+      }
+
+      output.innerHTML = messages.join('<br>');
+    }
+  </script>
+
+  <div style="text-align: center; margin-top: 40px; font-size: 14px; color: #333;">
+    Made with 🧀 for XenoSO by Mr Teddy<br><br>
+    <em>Beta version. If you find bugs, please report them to Mr Teddy on Discord!</em>
+  </div>
+</body>
+</html>
