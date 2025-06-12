@@ -262,14 +262,14 @@
         messages.push(`<strong>Successful Pizza! (Size ${result.size}) ${emoji}:</strong>`);
 
         for (let [player, ing] of result.used) {
-          playerAction[player] = { action: 'USE', ingredient: ing };
+          playerAction[player] = { action: 'use', ingredient: ing };
           usedSet.add(player);
         }
 
         const burns = burnSuggestions(players, usedSet);
         for (let [player, ing] of burns) {
           if (!playerAction[player]) {
-            playerAction[player] = { action: 'BURN', ingredient: ing };
+            playerAction[player] = { action: 'burn', ingredient: ing };
             usedSet.add(player);
           }
         }
